@@ -24,6 +24,7 @@ typedef struct {
 } module_ctrl_t;
 
 #pragma pack(pop)
+
 void mbDataInit();
 
 #endif /* __MBDATA_H */
