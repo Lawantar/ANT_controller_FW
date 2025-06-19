@@ -25,6 +25,6 @@ typedef struct {
 
 #pragma pack(pop)
 
-void mbDataInit();
+void mb_data_init();
 
 #endif /* __MBDATA_H */

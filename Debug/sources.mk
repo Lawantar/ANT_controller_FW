@@ -42,10 +42,8 @@ SUBDIRS := \
 Core/Src \
 Core/Startup \
 Drivers/STM32G0xx_HAL_Driver/Src \
-Modules/modbus/ascii \
 Modules/modbus/functions \
 Modules/modbus \
 Modules/modbus/port \
 Modules/modbus/rtu \
-Modules/modbus/tcp \
 

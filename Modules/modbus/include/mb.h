@@ -369,7 +369,7 @@ eMBErrorCode    eMBRegHoldingCB( UCHAR * pucRegBuffer, USHORT usAddress,
  *   - eMBErrorCode::MB_ENOERR If no error occurred. In this case a normal
  *       Modbus response is sent.
  *   - eMBErrorCode::MB_ENOREG If the application does not map an coils
- *       within the requested address range. In this case a 
+ *       within the requested address range. In this case a
  *       <b>ILLEGAL DATA ADDRESS</b> is sent as a response.
  *   - eMBErrorCode::MB_ETIMEDOUT If the requested register block is
  *       currently not available and the application dependent response
@@ -398,7 +398,7 @@ eMBErrorCode    eMBRegCoilsCB( UCHAR * pucRegBuffer, USHORT usAddress,
  *   - eMBErrorCode::MB_ENOERR If no error occurred. In this case a normal
  *       Modbus response is sent.
  *   - eMBErrorCode::MB_ENOREG If no such discrete inputs exists.
- *       In this case a <b>ILLEGAL DATA ADDRESS</b> exception frame is sent 
+ *       In this case a <b>ILLEGAL DATA ADDRESS</b> exception frame is sent
  *       as a response.
  *   - eMBErrorCode::MB_ETIMEDOUT If the requested register block is
  *       currently not available and the application dependent response

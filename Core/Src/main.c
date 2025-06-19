@@ -25,6 +25,8 @@
 #include "mbport.h"
 #include "mt_port.h"
 #include "mbdata.h"
+#include "inertia_math.h"
+#include "sensors.h"
 #include "string.h"
 /* USER CODE END Includes */
 
@@ -35,7 +37,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define DATA_UPD_TIME 50U // in ms
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -53,7 +55,13 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 extern module_ctrl_t Data;
+extern sensors_ctrl_t sensors_data;
 
+uint8_t captured_pos = 0x00;
+float init_elev = 0.0f;
+float init_yaw = 0.0f;
+
+uint32_t data_upd_time_prev = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -64,12 +72,31 @@ static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
-
+uint8_t capture_init_pos(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+uint8_t capture_init_pos(void) {
+	uint8_t err = 0x00;
+	err = lsm6dsox_read_acc();
+	Data.acc_raw[0] = lsm6dsox_from_fs2_to_mg(sensors_data.acc_data_raw[0]);
+	Data.acc_raw[1] = lsm6dsox_from_fs2_to_mg(sensors_data.acc_data_raw[1]);
+	Data.acc_raw[2] = lsm6dsox_from_fs2_to_mg(sensors_data.acc_data_raw[2]);
+	err = lsm6dsox_read_gyro();
+	Data.gyro_raw[0] = lsm6dsox_from_fs125_to_mdps(sensors_data.gyro_data_raw[0]);
+	Data.gyro_raw[1] = lsm6dsox_from_fs125_to_mdps(sensors_data.gyro_data_raw[1]);
+	Data.gyro_raw[2] = lsm6dsox_from_fs125_to_mdps(sensors_data.gyro_data_raw[2]);
+	/*err = lis3mdl_read_mag();
+	 Data.mag_raw[0] = lis3mdl_from_fs4_to_gauss(sensors_data.mag_data_raw[0]);
+	 Data.mag_raw[1] = lis3mdl_from_fs4_to_gauss(sensors_data.mag_data_raw[1]);
+	 Data.mag_raw[2] = lis3mdl_from_fs4_to_gauss(sensors_data.mag_data_raw[2]);*/
+	if (!err) {
+		init_elev = calc_elev_angle(&Data);
+		//init_yaw = calc_yaw_angle(&Data);
+	}
+	return err;
+}
 /* USER CODE END 0 */
 
 /**
@@ -105,11 +132,14 @@ int main(void) {
 	MX_USART2_UART_Init();
 	MX_TIM3_Init();
 	/* USER CODE BEGIN 2 */
-	HAL_GPIO_WritePin(GPIOA, 0, GPIO_PIN_SET); /* Driver HARDSTOP connect to GND */
+	HAL_GPIO_WritePin(GPIOA, 0, GPIO_PIN_SET); /* Driver HARDSTOP connected to GND */
 
 	MT_PORT_SetTimerModule(&htim3);
 	MT_PORT_SetUartModule(&huart2);
-	mbDataInit();
+	mb_data_init();
+
+	uint8_t err = lsm6dsox_init();
+	err = lis3mdl_init();
 
 	eMBErrorCode eStatus;
 	eStatus = eMBInit(MB_RTU, 0x0A, 0, 115200, MB_PAR_NONE);
@@ -119,11 +149,66 @@ int main(void) {
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
 	while (1) {
+		eMBPoll();
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */
-		eMBPoll();
-		Data.elev_angle_d = HAL_GetTick() / 1000;
+		switch (Data.mode) {
+		case 0xFFFF:
+			captured_pos = 0x00;
+			break;
+		case 0x0001:
+			if (HAL_GetTick() - data_upd_time_prev > DATA_UPD_TIME) {
+				err = lsm6dsox_read_acc();
+				Data.acc_raw[0] = lsm6dsox_from_fs2_to_mg(sensors_data.acc_data_raw[0]);
+				Data.acc_raw[1] = lsm6dsox_from_fs2_to_mg(sensors_data.acc_data_raw[1]);
+				Data.acc_raw[2] = lsm6dsox_from_fs2_to_mg(sensors_data.acc_data_raw[2]);
+				err = lsm6dsox_read_gyro();
+				Data.gyro_raw[0] = lsm6dsox_from_fs125_to_mdps(sensors_data.gyro_data_raw[0]);
+				Data.gyro_raw[1] = lsm6dsox_from_fs125_to_mdps(sensors_data.gyro_data_raw[1]);
+				Data.gyro_raw[2] = lsm6dsox_from_fs125_to_mdps(sensors_data.gyro_data_raw[2]);
+				/*err = lis3mdl_read_mag();
+				 Data.mag_raw[0] = lis3mdl_from_fs4_to_gauss(sensors_data.mag_data_raw[0]);
+				 Data.mag_raw[1] = lis3mdl_from_fs4_to_gauss(sensors_data.mag_data_raw[1]);
+				 Data.mag_raw[2] = lis3mdl_from_fs4_to_gauss(sensors_data.mag_data_raw[2]);*/
+				Data.status = err;
+				data_upd_time_prev = HAL_GetTick();
+			}
+			break;
+		case 0x0002:
+			if (!captured_pos) {
+				if (capture_init_pos() == 0) {
+					captured_pos = 0x01;
+				} else {
+					Data.mode = 0xFFFF;
+					break;
+				}
+			}
+			if (HAL_GetTick() - data_upd_time_prev > DATA_UPD_TIME) {
+				err = lsm6dsox_read_acc();
+				Data.acc_raw[0] = lsm6dsox_from_fs2_to_mg(sensors_data.acc_data_raw[0]);
+				Data.acc_raw[1] = lsm6dsox_from_fs2_to_mg(sensors_data.acc_data_raw[1]);
+				Data.acc_raw[2] = lsm6dsox_from_fs2_to_mg(sensors_data.acc_data_raw[2]);
+				err = lsm6dsox_read_gyro();
+				Data.gyro_raw[0] = lsm6dsox_from_fs125_to_mdps(sensors_data.gyro_data_raw[0]);
+				Data.gyro_raw[1] = lsm6dsox_from_fs125_to_mdps(sensors_data.gyro_data_raw[1]);
+				Data.gyro_raw[2] = lsm6dsox_from_fs125_to_mdps(sensors_data.gyro_data_raw[2]);
+				/*err = lis3mdl_read_mag();
+				 Data.mag_raw[0] = lis3mdl_from_fs4_to_gauss(sensors_data.mag_data_raw[0]);
+				 Data.mag_raw[1] = lis3mdl_from_fs4_to_gauss(sensors_data.mag_data_raw[1]);
+				 Data.mag_raw[2] = lis3mdl_from_fs4_to_gauss(sensors_data.mag_data_raw[2]);*/
+				Data.status = err;
+				Data.elev_angle = calc_elev_angle(&Data);
+				Data.elev_angle_d = Data.elev_angle - init_elev;
+				//Data.yaw_angle = calc_yaw_angle(&Data);
+				//Data.yaw_angle_d = Data.yaw_angle - init_yaw;
+				data_upd_time_prev = HAL_GetTick();
+			}
+			break;
+		default:
+			Data.mode = 0xFFFF;
+			break;
+		}
 	}
 	/* USER CODE END 3 */
 }
@@ -377,17 +462,21 @@ eMBErrorCode eMBRegHoldingCB(UCHAR *pucRegBuffer, USHORT usAddress,
 	eMBErrorCode eStatus = MB_ENOERR;
 	if (eMode == MB_REG_WRITE) {
 		int iRegIndex;
-		if ((usAddress >= REG_INPUT_START) && (usAddress + usNRegs <= REG_INPUT_NREGS + 1)) {
+		if ((usAddress >= REG_INPUT_START)
+				&& (usAddress + usNRegs <= REG_INPUT_NREGS + 1)) {
 			iRegIndex = (int) (usAddress - 1);
-			memcpy((unsigned char*)&Data + iRegIndex * 2, pucRegBuffer, usNRegs * 2);
+			memcpy((unsigned char*) &Data + iRegIndex * 2, pucRegBuffer,
+					usNRegs * 2);
 		} else {
 			eStatus = MB_ENOREG;
 		}
 	} else if (eMode == MB_REG_READ) {
 		int iRegIndex;
-		if ((usAddress >= REG_INPUT_START) && (usAddress + usNRegs <= REG_INPUT_NREGS + 1)) {
+		if ((usAddress >= REG_INPUT_START)
+				&& (usAddress + usNRegs <= REG_INPUT_NREGS + 1)) {
 			iRegIndex = (int) (usAddress - 1);
-			memcpy(pucRegBuffer, (unsigned char*)&Data + iRegIndex * 2, usNRegs * 2);
+			memcpy(pucRegBuffer, (unsigned char*) &Data + iRegIndex * 2,
+					usNRegs * 2);
 		} else {
 			eStatus = MB_ENOREG;
 		}

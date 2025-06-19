@@ -2,7 +2,7 @@
 
 module_ctrl_t Data;
 
-void mbDataInit(){
+void mb_data_init(){
 	Data.mode = 0xFFFF;
 	Data.acc_cal_coeffs[0] = 0.0f;
 	Data.acc_cal_coeffs[1] = 0.0f;

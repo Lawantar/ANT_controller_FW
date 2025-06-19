@@ -38,7 +38,8 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  C:/Users/Lawantar/STM32CubeIDE/workspace_1.15.1/Ant-controller/Modules/modbus/include/mbproto.h \
  C:/Users/Lawantar/STM32CubeIDE/workspace_1.15.1/Ant-controller/Modules/modbus/include/mbport.h \
  C:/Users/Lawantar/STM32CubeIDE/workspace_1.15.1/Ant-controller/Modules/modbus/port/mt_port.h \
- ../Core/Inc/mbdata.h
+ ../Core/Inc/mbdata.h ../Core/Inc/inertia_math.h ../Core/Inc/mbdata.h \
+ ../Core/Inc/sensors.h ../Core/Inc/main.h
 ../Core/Inc/main.h:
 ../Drivers/STM32G0xx_HAL_Driver/Inc/stm32g0xx_hal.h:
 ../Core/Inc/stm32g0xx_hal_conf.h:
@@ -80,3 +81,7 @@ C:/Users/Lawantar/STM32CubeIDE/workspace_1.15.1/Ant-controller/Modules/modbus/in
 C:/Users/Lawantar/STM32CubeIDE/workspace_1.15.1/Ant-controller/Modules/modbus/include/mbport.h:
 C:/Users/Lawantar/STM32CubeIDE/workspace_1.15.1/Ant-controller/Modules/modbus/port/mt_port.h:
 ../Core/Inc/mbdata.h:
+../Core/Inc/inertia_math.h:
+../Core/Inc/mbdata.h:
+../Core/Inc/sensors.h:
+../Core/Inc/main.h:

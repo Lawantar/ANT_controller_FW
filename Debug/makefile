@@ -9,11 +9,9 @@ RM := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
--include Modules/modbus/tcp/subdir.mk
 -include Modules/modbus/rtu/subdir.mk
 -include Modules/modbus/port/subdir.mk
 -include Modules/modbus/functions/subdir.mk
--include Modules/modbus/ascii/subdir.mk
 -include Modules/modbus/subdir.mk
 -include Drivers/STM32G0xx_HAL_Driver/Src/subdir.mk
 -include Core/Startup/subdir.mk
